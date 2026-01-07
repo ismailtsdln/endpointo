@@ -16,7 +16,7 @@ async fn test_parse_simple_js() {
     fs::write(&file_path, js_content).unwrap();
 
     let config = endpointo::config::ScanConfig::default();
-    let scanner = endpointo::Scanner::new(config);
+    let scanner = endpointo::Scanner::new(config).unwrap();
 
     let results = scanner.parse_file(&file_path).await.unwrap();
 
@@ -57,7 +57,7 @@ async fn test_graphql_detection() {
     fs::write(&file_path, js_content).unwrap();
 
     let config = endpointo::config::ScanConfig::default();
-    let scanner = endpointo::Scanner::new(config);
+    let scanner = endpointo::Scanner::new(config).unwrap();
 
     let results = scanner.parse_file(&file_path).await.unwrap();
 

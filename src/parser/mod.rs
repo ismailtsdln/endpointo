@@ -4,7 +4,7 @@ pub mod patterns;
 pub mod sourcemap;
 
 use crate::error::Result;
-use crate::types::{Endpoint, EndpointType};
+use crate::types::Endpoint;
 use js_parser::JsParser;
 use patterns::PatternMatcher;
 use tracing::{debug, info};
@@ -26,15 +26,16 @@ impl Parser {
 
     /// Parse JavaScript content and extract endpoints
     pub fn parse_js(&self, content: &str, source: Option<&str>) -> Result<Vec<Endpoint>> {
-        info!("Parsing JavaScript ({}bytes)", content.len());
+        info!("Parsing JavaScript ({} bytes)", content.len());
 
         let mut endpoints = Vec::new();
 
-        // Extract URLs using regex patterns
+        // 1. Regex-based extraction using PatternMatcher
         let urls = self.pattern_matcher.find_urls(content);
 
         for url in urls {
-            let endpoint_type = self.determine_endpoint_type(&url);
+            // Use PatternMatcher's type detection
+            let endpoint_type = self.pattern_matcher.detect_endpoint_type(&url, content);
             let mut endpoint = Endpoint::new(url.clone(), endpoint_type);
 
             if let Some(src) = source {
@@ -49,24 +50,22 @@ impl Parser {
             endpoints.push(endpoint);
         }
 
-        // Extract API endpoints specifically
+        // 2. Extract API endpoints specifically (with method detection)
         endpoints.extend(self.pattern_matcher.find_api_endpoints(content, source));
 
-        debug!("Found {} endpoints", endpoints.len());
-        Ok(endpoints)
-    }
-
-    /// Determine the type of endpoint
-    fn determine_endpoint_type(&self, url: &str) -> EndpointType {
-        if url.contains("graphql") || url.contains("/gql") {
-            EndpointType::GraphQL
-        } else if url.starts_with("ws://") || url.starts_with("wss://") {
-            EndpointType::WebSocket
-        } else if url.contains("/api/") || url.contains("/v1/") || url.contains("/v2/") {
-            EndpointType::Rest
-        } else {
-            EndpointType::Unknown
+        // 3. Deduplicate endpoints
+        let mut final_endpoints: Vec<Endpoint> = Vec::new();
+        for ep in endpoints {
+            if !final_endpoints
+                .iter()
+                .any(|e| e.url == ep.url && e.method == ep.method)
+            {
+                final_endpoints.push(ep);
+            }
         }
+
+        debug!("Found {} unique endpoints", final_endpoints.len());
+        Ok(final_endpoints)
     }
 
     /// Extract query parameters from URL
@@ -75,6 +74,7 @@ impl Parser {
             let query = &url[query_start + 1..];
             let params: Vec<String> = query
                 .split('&')
+                .filter(|p| !p.is_empty())
                 .filter_map(|p| p.split('=').next())
                 .map(|s| s.to_string())
                 .collect();

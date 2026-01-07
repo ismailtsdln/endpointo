@@ -109,11 +109,11 @@ impl HttpClient {
             Err(e) => return Err(e),
         };
 
-        // Parse robots.txt - simple implementation
-        // TODO: Implement proper robots.txt parsing with robotstxt crate
-
-        // Simple check - just look for Disallow directives
-        let allowed = !robots_content.contains(&format!("Disallow: {}", url.path()));
+        // Parse robots.txt using the robotstxt crate
+        let mut matcher = robotstxt::DefaultMatcher::default();
+        let user_agent = "Endpointo"; // We can make this configurable
+        let allowed =
+            matcher.one_agent_allowed_by_robots(&robots_content, user_agent, url.as_str());
 
         if !allowed {
             warn!("robots.txt disallows {}", url);

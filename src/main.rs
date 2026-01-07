@@ -70,14 +70,14 @@ async fn main() -> Result<()> {
                 config = config.with_plugin(PathBuf::from(p));
             }
 
-            let mut scanner = Scanner::new(config);
+            let mut scanner = Scanner::new(config)?;
 
             // Use interactive UI if verbose logging is not enabled and stdout is a terminal
             if std::env::var("RUST_LOG").is_err() {
                 scanner = scanner.with_ui(InteractiveUi::new(5));
             }
 
-            let results = scanner.scan_url(&url).await?;
+            let results: Vec<endpointo::types::Endpoint> = scanner.scan_url(&url).await?;
             let output_format = format.unwrap_or(OutputFormat::Json);
             write_results(&results, output.as_deref(), output_format)?;
 
@@ -116,9 +116,9 @@ async fn main() -> Result<()> {
                 config = config.with_plugin(PathBuf::from(p));
             }
 
-            let scanner = Scanner::new(config);
+            let scanner = Scanner::new(config)?;
 
-            let mut all_results = Vec::new();
+            let mut all_results: Vec<endpointo::types::Endpoint> = Vec::new();
             for file in files {
                 match scanner.parse_file(&file).await {
                     Ok(results) => all_results.extend(results),

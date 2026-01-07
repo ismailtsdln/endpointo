@@ -116,6 +116,12 @@ impl PluginManager {
                 }
             });
         }
+
+        #[cfg(not(feature = "python-plugins"))]
+        {
+            let _ = &mut endpoint; // Prevent unused_mut warning if feature is off
+        }
+
         endpoint
     }
 

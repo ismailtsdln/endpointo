@@ -15,18 +15,17 @@
 //! - robots.txt compliance
 //! - TLS/SSL error handling
 //!
-//! ## Example
-//!
 //! ```no_run
 //! use endpointo::scanner::Scanner;
 //! use endpointo::config::ScanConfig;
+//! use endpointo::types::Endpoint;
 //!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
-//!     let config = ScanConfig::default();
-//!     let scanner = Scanner::new(config);
+//!     let config = ScanConfig::new("https://example.com".to_string());
+//!     let scanner = Scanner::new(config)?;
 //!     
-//!     let results = scanner.scan_url("https://example.com").await?;
+//!     let results: Vec<Endpoint> = scanner.scan_url("https://example.com").await?;
 //!     println!("Found {} endpoints", results.len());
 //!     
 //!     Ok(())

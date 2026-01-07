@@ -7,7 +7,7 @@ use crate::plugins::PluginManager;
 use crate::types::Endpoint;
 use std::path::Path;
 use tokio::fs;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 /// Main scanner orchestrator
 pub struct Scanner {
@@ -20,8 +20,8 @@ pub struct Scanner {
 
 impl Scanner {
     /// Create a new scanner
-    pub fn new(config: ScanConfig) -> Self {
-        let crawler = Crawler::new(config.clone()).expect("Failed to create crawler");
+    pub fn new(config: ScanConfig) -> Result<Self> {
+        let crawler = Crawler::new(config.clone())?;
         let parser = Parser::new();
         let mut plugin_manager = PluginManager::new();
 
@@ -29,13 +29,13 @@ impl Scanner {
             let _ = plugin_manager.load_plugin(plugin_path);
         }
 
-        Self {
+        Ok(Self {
             crawler,
             parser,
             config,
             plugin_manager,
             ui: None,
-        }
+        })
     }
 
     /// Set interactive UI
@@ -54,7 +54,7 @@ impl Scanner {
 
         let mut all_endpoints = Vec::new();
 
-        // Crawl the URL to find JavaScript assets
+        // 1. Crawl the URL to find JavaScript assets
         let assets = self.crawler.crawl(url).await?;
         info!("Found {} JavaScript assets", assets.len());
 
@@ -63,7 +63,14 @@ impl Scanner {
             ui.set_main_message(&format!("Found {} JS files", assets.len()));
         }
 
-        // Parse each asset
+        // 2. Parse the main page first for inline scripts/endpoints
+        if let Ok(html) = self.crawler.fetch_js(url).await {
+            if let Ok(endpoints) = self.parser.parse_js(&html, Some(url)) {
+                all_endpoints.extend(endpoints);
+            }
+        }
+
+        // 3. Parse each discovered asset
         for asset_url in assets {
             if let Some(ui) = &self.ui {
                 ui.set_main_message(&format!("Parsing {}", asset_url));
@@ -72,7 +79,7 @@ impl Scanner {
             match self.crawler.fetch_js(&asset_url).await {
                 Ok(js_content) => match self.parser.parse_js(&js_content, Some(&asset_url)) {
                     Ok(endpoints) => {
-                        info!("Extracted {} endpoints from {}", endpoints.len(), asset_url);
+                        debug!("Extracted {} endpoints from {}", endpoints.len(), asset_url);
                         all_endpoints.extend(endpoints);
                     }
                     Err(e) => {
@@ -85,14 +92,7 @@ impl Scanner {
             }
         }
 
-        // Also parse the main page
-        if let Ok(html) = self.crawler.fetch_js(url).await {
-            if let Ok(endpoints) = self.parser.parse_js(&html, Some(url)) {
-                all_endpoints.extend(endpoints);
-            }
-        }
-
-        // Apply plugins
+        // 4. Transform endpoints using plugins
         let mut processed_endpoints = Vec::new();
         for ep in all_endpoints {
             if self.plugin_manager.filter_endpoint(&ep) {
@@ -101,16 +101,22 @@ impl Scanner {
             }
         }
 
-        // Apply config-based filter if specified
+        // 5. Apply config-based filter if specified
         if let Some(filter) = &self.config.filter_pattern {
             processed_endpoints.retain(|e| e.url.contains(filter));
         }
+
+        // 6. Final deduplication (just in case)
+        processed_endpoints.dedup_by(|a, b| a.url == b.url && a.method == b.method);
 
         if let Some(ui) = &self.ui {
             ui.finish();
         }
 
-        info!("Total endpoints found: {}", processed_endpoints.len());
+        info!(
+            "Total unique endpoints found: {}",
+            processed_endpoints.len()
+        );
         Ok(processed_endpoints)
     }
 
