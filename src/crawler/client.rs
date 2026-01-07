@@ -3,7 +3,6 @@ use crate::error::{Error, Result};
 use governor::{Quota, RateLimiter as GovernorLimiter};
 use nonzero_ext::nonzero;
 use reqwest::{header, Client};
-use robotstxt::DefaultMatcher;
 use std::time::Duration;
 use tracing::{debug, warn};
 use url::Url;
@@ -43,7 +42,8 @@ impl HttpClient {
             .build()?;
 
         // Configure rate limiter
-        let quota = Quota::per_second(nonzero!(config.rate_limit));
+        let rate = std::num::NonZeroU32::new(config.rate_limit).unwrap_or(nonzero!(10u32));
+        let quota = Quota::per_second(rate);
         let rate_limiter = GovernorLimiter::direct(quota);
 
         Ok(Self {
@@ -109,11 +109,10 @@ impl HttpClient {
             Err(e) => return Err(e),
         };
 
-        // Parse robots.txt
-        let matcher = DefaultMatcher::default();
-        let user_agent = "Endpointo";
+        // Parse robots.txt - simple implementation
+        // TODO: Implement proper robots.txt parsing with robotstxt crate
 
-        // Simple check - can be improved
+        // Simple check - just look for Disallow directives
         let allowed = !robots_content.contains(&format!("Disallow: {}", url.path()));
 
         if !allowed {

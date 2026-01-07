@@ -1,3 +1,4 @@
-pub mod mod;
+pub mod cli_mod;
+pub mod interactive;
 
-pub use self::mod::{Cli, Commands, OutputFormat};
+pub use cli_mod::{Cli, Commands, OutputFormat};

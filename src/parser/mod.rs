@@ -11,7 +11,7 @@ use tracing::{debug, info};
 
 /// Main parser for extracting endpoints from web assets
 pub struct Parser {
-    js_parser: JsParser,
+    _js_parser: JsParser,
     pattern_matcher: PatternMatcher,
 }
 
@@ -19,7 +19,7 @@ impl Parser {
     /// Create a new parser
     pub fn new() -> Self {
         Self {
-            js_parser: JsParser::new(),
+            _js_parser: JsParser::new(),
             pattern_matcher: PatternMatcher::new(),
         }
     }

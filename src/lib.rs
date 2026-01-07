@@ -42,8 +42,10 @@ pub mod parser;
 pub mod scanner;
 pub mod types;
 
-#[cfg(feature = "python-plugins")]
 pub mod plugins;
+
+#[cfg(feature = "python-plugins")]
+pub mod bridge;
 
 // Re-export commonly used types
 pub use error::{Error, Result};

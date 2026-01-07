@@ -4,7 +4,7 @@ use endpointo::cli::{Cli, Commands};
 use endpointo::config::ScanConfig;
 use endpointo::output::OutputFormat;
 use endpointo::scanner::Scanner;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -27,7 +27,7 @@ async fn main() -> Result<()> {
             timeout,
             threads,
             filter,
-            plugin,
+            plugin: _,
         } => {
             let config = ScanConfig {
                 rate_limit: rate_limit.unwrap_or(10),
@@ -57,7 +57,7 @@ async fn main() -> Result<()> {
             output,
             format,
             filter,
-            plugin,
+            plugin: _,
         } => {
             let config = ScanConfig::default();
             let scanner = Scanner::new(config);
@@ -72,7 +72,11 @@ async fn main() -> Result<()> {
             if let Some(filter_pattern) = filter {
                 all_results.retain(|endpoint| {
                     endpoint.url.contains(&filter_pattern)
-                        || endpoint.method.as_deref().unwrap_or("").contains(&filter_pattern)
+                        || endpoint
+                            .method
+                            .as_deref()
+                            .unwrap_or("")
+                            .contains(&filter_pattern)
                 });
             }
 

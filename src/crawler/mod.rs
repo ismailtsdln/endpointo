@@ -4,7 +4,6 @@ pub mod robots;
 
 use crate::config::ScanConfig;
 use crate::error::Result;
-use crate::types::Endpoint;
 use client::HttpClient;
 use dashmap::DashSet;
 use std::sync::Arc;
