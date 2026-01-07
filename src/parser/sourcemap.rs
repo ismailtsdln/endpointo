@@ -1,4 +1,7 @@
 use crate::error::Result;
+use crate::types::{Endpoint, EndpointType};
+use sourcemap::SourceMap;
+use tracing::{debug, warn};
 
 /// Sourcemap extractor and resolver
 pub struct SourceMapExtractor;
@@ -21,10 +24,28 @@ impl SourceMapExtractor {
     }
 
     /// Parse sourcemap content
-    pub fn parse_sourcemap(&self, _content: &str) -> Result<Option<Vec<String>>> {
-        // TODO: Implement sourcemap parsing using the sourcemap crate
-        // This will map minified code back to original sources
-        Ok(None)
+    pub fn parse_sourcemap(&self, content: &str) -> Result<Vec<Endpoint>> {
+        let mut endpoints = Vec::new();
+        debug!("Parsing sourcemap content...");
+
+        match SourceMap::from_reader(content.as_bytes()) {
+            Ok(sm) => {
+                for (i, source) in sm.sources().enumerate() {
+                    if let Some(source_content) = sm.get_source_contents(i as u32) {
+                        debug!("Analyzing source map file: {}", source);
+                        // Mark the sources
+                        let ep = Endpoint::new(source.to_string(), EndpointType::Unknown)
+                            .with_source("sourcemap".to_string());
+                        endpoints.push(ep);
+                    }
+                }
+            }
+            Err(e) => {
+                warn!("Failed to parse sourcemap: {}", e);
+            }
+        }
+
+        Ok(endpoints)
     }
 }
 

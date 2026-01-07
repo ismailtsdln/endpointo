@@ -1,6 +1,11 @@
+use std::path::PathBuf;
+
 /// Configuration for scanning operations
 #[derive(Debug, Clone)]
 pub struct ScanConfig {
+    /// Target URL or input source
+    pub target_url: String,
+
     /// Maximum requests per second
     pub rate_limit: u32,
 
@@ -21,11 +26,15 @@ pub struct ScanConfig {
 
     /// Filter pattern for endpoints
     pub filter_pattern: Option<String>,
+
+    /// Path to a Python plugin
+    pub plugin_path: Option<PathBuf>,
 }
 
 impl Default for ScanConfig {
     fn default() -> Self {
         Self {
+            target_url: String::new(),
             rate_limit: 10,
             timeout_seconds: 30,
             max_concurrent: 10,
@@ -33,55 +42,71 @@ impl Default for ScanConfig {
             respect_robots_txt: true,
             user_agent: Some("Endpointo/0.1.0".to_string()),
             filter_pattern: None,
+            plugin_path: None,
         }
     }
 }
 
 impl ScanConfig {
     /// Create a new configuration with custom settings
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(target_url: String) -> Self {
+        Self {
+            target_url,
+            ..Self::default()
+        }
     }
 
     /// Set rate limit
-    pub fn rate_limit(mut self, rate: u32) -> Self {
-        self.rate_limit = rate;
+    pub fn with_rate_limit(mut self, rate: Option<u32>) -> Self {
+        if let Some(r) = rate {
+            self.rate_limit = r;
+        }
         self
     }
 
     /// Set timeout
-    pub fn timeout(mut self, seconds: u64) -> Self {
-        self.timeout_seconds = seconds;
+    pub fn with_timeout(mut self, seconds: Option<u64>) -> Self {
+        if let Some(s) = seconds {
+            self.timeout_seconds = s;
+        }
         self
     }
 
     /// Set maximum concurrent requests
-    pub fn max_concurrent(mut self, max: usize) -> Self {
-        self.max_concurrent = max;
+    pub fn with_max_concurrent(mut self, max: Option<usize>) -> Self {
+        if let Some(m) = max {
+            self.max_concurrent = m;
+        }
         self
     }
 
     /// Enable/disable following redirects
-    pub fn follow_redirects(mut self, follow: bool) -> Self {
+    pub fn with_redirects(mut self, follow: bool) -> Self {
         self.follow_redirects = follow;
         self
     }
 
     /// Enable/disable robots.txt compliance
-    pub fn respect_robots_txt(mut self, respect: bool) -> Self {
+    pub fn with_robots(mut self, respect: bool) -> Self {
         self.respect_robots_txt = respect;
         self
     }
 
     /// Set custom user agent
-    pub fn user_agent(mut self, ua: impl Into<String>) -> Self {
+    pub fn with_user_agent(mut self, ua: impl Into<String>) -> Self {
         self.user_agent = Some(ua.into());
         self
     }
 
     /// Set filter pattern
-    pub fn filter(mut self, pattern: impl Into<String>) -> Self {
-        self.filter_pattern = Some(pattern.into());
+    pub fn with_filter(mut self, pattern: String) -> Self {
+        self.filter_pattern = Some(pattern);
+        self
+    }
+
+    /// Set plugin path
+    pub fn with_plugin(mut self, path: PathBuf) -> Self {
+        self.plugin_path = Some(path);
         self
     }
 }

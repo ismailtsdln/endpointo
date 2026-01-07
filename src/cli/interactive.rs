@@ -1,9 +1,4 @@
-use crate::config::ScanConfig;
-use crate::error::Result;
-use crate::types::Endpoint;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use std::sync::Arc;
-use tracing::info;
 
 /// Interactive UI manager using indicatif
 pub struct InteractiveUi {

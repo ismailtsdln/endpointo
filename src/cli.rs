@@ -1,4 +1,5 @@
 pub mod cli_mod;
 pub mod interactive;
 
-pub use cli_mod::{Cli, Commands, OutputFormat};
+pub use self::cli_mod::{Cli, Commands, OutputFormat};
+pub use self::interactive::InteractiveUi;

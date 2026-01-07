@@ -65,37 +65,129 @@ fn serialize_xml(endpoints: &[Endpoint]) -> Result<String> {
 }
 
 /// Serialize to HTML report
-fn serialize_html(_endpoints: &[Endpoint]) -> Result<String> {
-    // TODO: Implement HTML template with Askama
-    let html = r#"
-<!DOCTYPE html>
+fn serialize_html(endpoints: &[Endpoint]) -> Result<String> {
+    let mut html = String::from(
+        r#"<!DOCTYPE html>
 <html>
 <head>
-    <title>Endpointo Scan Results</title>
+    <title>Endpointo Report</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1 { color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f5f5f5; }
+        h1 { color: #333; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background: #4CAF50; color: white; }
-        tr:hover { background: #f5f5f5; }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-        .rest { background: #2196F3; color: white; }
-        .graphql { background: #E91E63; color: white; }
-        .websocket { background: #FF9800; color: white; }
+        th { background-color: #f8f9fa; color: #333; cursor: pointer; }
+        tr:hover { background-color: #f1f1f1; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
+        .badge-rest { background: #e3f2fd; color: #1976d2; }
+        .badge-graphql { background: #f3e5f5; color: #7b1fa2; }
+        .badge-websocket { background: #e8f5e9; color: #388e3c; }
+        .badge-unknown { background: #eeeeee; color: #616161; }
+        #search { padding: 10px; width: 300px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔍 Endpointo Scan Results</h1>
-        <p>HTML report generation in progress...</p>
-    </div>
-</body>
-</html>
-    "#;
+        <h1>🔍 Endpointo Scan Report</h1>
+        <input type="text" id="search" onkeyup="filterTable()" placeholder="Search URLs, methods, sources...">
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)">URL</th>
+                    <th onclick="sortTable(1)">Type</th>
+                    <th onclick="sortTable(2)">Method</th>
+                    <th onclick="sortTable(3)">Source</th>
+                </tr>
+            </thead>
+            <tbody>
+"#,
+    );
 
-    Ok(html.to_string())
+    for ep in endpoints {
+        let badge_class = match ep.endpoint_type {
+            crate::types::EndpointType::Rest => "badge-rest",
+            crate::types::EndpointType::GraphQL => "badge-graphql",
+            crate::types::EndpointType::WebSocket => "badge-websocket",
+            _ => "badge-unknown",
+        };
+
+        html.push_str(&format!(
+            r#"                <tr>
+                    <td>{}</td>
+                    <td><span class="badge {}">{}</span></td>
+                    <td>{}</td>
+                    <td>{}:{}</td>
+                </tr>
+"#,
+            escape_xml(&ep.url),
+            badge_class,
+            format!("{:?}", ep.endpoint_type),
+            ep.method.as_deref().unwrap_or("-"),
+            ep.source.as_deref().unwrap_or("-"),
+            ep.line
+                .map(|l| l.to_string())
+                .unwrap_or_else(|| "-".to_string())
+        ));
+    }
+
+    html.push_str(r#"            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function filterTable() {
+            var input, filter, table, tr, td, i, j, found;
+            input = document.getElementById("search");
+            filter = input.value.toUpperCase();
+            table = document.getElementById("resultsTable");
+            tr = table.getElementsByTagName("tr");
+            for (i = 1; i < tr.length; i++) {
+                found = false;
+                td = tr[i].getElementsByTagName("td");
+                for (j = 0; j < td.length; j++) {
+                    if (td[j].textContent.toUpperCase().indexOf(filter) > -1) {
+                        found = true;
+                        break;
+                    }
+                }
+                tr[i].style.display = found ? "" : "none";
+            }
+        }
+
+        function sortTable(n) {
+            var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+            table = document.getElementById("resultsTable");
+            switching = true;
+            dir = "asc";
+            while (switching) {
+                switching = false;
+                rows = table.rows;
+                for (i = 1; i < (rows.length - 1); i++) {
+                    shouldSwitch = false;
+                    x = rows[i].getElementsByTagName("TD")[n];
+                    y = rows[i + 1].getElementsByTagName("TD")[n];
+                    if (dir == "asc") {
+                        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) { shouldSwitch = true; break; }
+                    } else if (dir == "desc") {
+                        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) { shouldSwitch = true; break; }
+                    }
+                }
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                    switchcount ++;
+                } else if (switchcount == 0 && dir == "asc") {
+                    dir = "desc";
+                    switching = true;
+                }
+            }
+        }
+    </script>
+</body>
+</html>"#);
+
+    Ok(html)
 }
 
 /// Escape XML special characters
