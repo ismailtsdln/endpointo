@@ -1,4 +1,4 @@
-use crate::cli::OutputFormat;
+pub use crate::cli::OutputFormat;
 use crate::error::{Error, Result};
 use crate::types::Endpoint;
 use colored::*;
