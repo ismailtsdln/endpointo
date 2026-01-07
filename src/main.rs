@@ -1,11 +1,30 @@
 use anyhow::Result;
 use clap::Parser as _;
+use colored::*;
 use endpointo::cli::{Cli, Commands, InteractiveUi};
 use endpointo::config::ScanConfig;
 use endpointo::output::{write_results, OutputFormat};
 use endpointo::scanner::Scanner;
 use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
+
+fn print_banner() {
+    let banner = r#"
+    _______  __    _  ______   _______  _______  ___   __    _  _______  _______ 
+|       ||  |  | ||      | |       ||       ||   | |  |  | ||       ||       |
+|    ___||   |_| ||  _    ||    _  ||   _   ||   | |   |_| ||    ___||   _   |
+|   |___ |       || | |   ||   |_| ||  | |  ||   | |       ||   | __ |  | |  |
+|    ___||  _    || |_|   ||    ___||  |_|  ||   | |  _    ||   ||  ||  |_|  |
+|   |___ | | |   ||       ||   |    |       ||   | | | |   ||   |_| ||       |
+|_______||_|  |__||______| |___|    |_______||___| |_|  |__||_______||_______|
+    "#;
+    println!("{}", banner.bright_cyan().bold());
+    println!(
+        "  {} v{}\n",
+        "API Endpoint Discovery Tool".italic().dimmed(),
+        "0.1.0".bright_green()
+    );
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -19,6 +38,8 @@ async fn main() -> Result<()> {
     // Parse CLI arguments
     let cli = Cli::parse();
 
+    print_banner();
+
     match cli.command {
         Commands::Scan {
             url,
@@ -30,6 +51,12 @@ async fn main() -> Result<()> {
             filter,
             plugin,
         } => {
+            println!(
+                "{} {}...",
+                "🚀 Starting scan of".bright_white(),
+                url.bold().bright_blue()
+            );
+
             let mut config = ScanConfig::new(url.clone())
                 .with_rate_limit(rate_limit)
                 .with_timeout(timeout)
@@ -54,9 +81,17 @@ async fn main() -> Result<()> {
             let output_format = format.unwrap_or(OutputFormat::Json);
             write_results(&results, output.as_deref(), output_format)?;
 
-            println!("✅ Scan complete! Found {} endpoints", results.len());
+            println!(
+                "\n{} Found {} endpoints",
+                "✅ Scan complete!".bright_green().bold(),
+                results.len().to_string().bold()
+            );
             if let Some(output_path) = output {
-                println!("📄 Results saved to: {}", output_path.display());
+                println!(
+                    "{} {}",
+                    "📄 Results saved to:".dimmed(),
+                    output_path.display().to_string().bright_white().underline()
+                );
             }
         }
 
@@ -67,6 +102,12 @@ async fn main() -> Result<()> {
             filter,
             plugin,
         } => {
+            println!(
+                "{} {} files...",
+                "📂 Parsing".bright_white(),
+                files.len().to_string().bold().bright_blue()
+            );
+
             let mut config = ScanConfig::default();
             if let Some(f) = filter {
                 config = config.with_filter(f);
@@ -79,17 +120,27 @@ async fn main() -> Result<()> {
 
             let mut all_results = Vec::new();
             for file in files {
-                let results = scanner.parse_file(&file).await?;
-                all_results.extend(results);
+                match scanner.parse_file(&file).await {
+                    Ok(results) => all_results.extend(results),
+                    Err(e) => eprintln!("{} {}: {}", "❌ Error parsing".red(), file.display(), e),
+                }
             }
 
             // Write output
             let output_format = format.unwrap_or(OutputFormat::Json);
             write_results(&all_results, output.as_deref(), output_format)?;
 
-            println!("✅ Parse complete! Found {} endpoints", all_results.len());
+            println!(
+                "\n{} Parsed {} endpoints",
+                "✅ Parse complete!".bright_green().bold(),
+                all_results.len().to_string().bold()
+            );
             if let Some(output_path) = output {
-                println!("📄 Results saved to: {}", output_path.display());
+                println!(
+                    "{} {}",
+                    "📄 Results saved to:".dimmed(),
+                    output_path.display().to_string().bright_white().underline()
+                );
             }
         }
     }

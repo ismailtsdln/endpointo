@@ -1,6 +1,7 @@
-pub use crate::cli::OutputFormat;
+use crate::cli::OutputFormat;
 use crate::error::{Error, Result};
 use crate::types::Endpoint;
+use colored::*;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
@@ -11,21 +12,62 @@ pub fn write_results(
     output_path: Option<&Path>,
     format: OutputFormat,
 ) -> Result<()> {
-    let output = match format {
-        OutputFormat::Json => serialize_json(endpoints)?,
-        OutputFormat::Yaml => serialize_yaml(endpoints)?,
-        OutputFormat::Xml => serialize_xml(endpoints)?,
-        OutputFormat::Html => serialize_html(endpoints)?,
-    };
-
     if let Some(path) = output_path {
+        let output = match format {
+            OutputFormat::Json => serialize_json(endpoints)?,
+            OutputFormat::Yaml => serialize_yaml(endpoints)?,
+            OutputFormat::Xml => serialize_xml(endpoints)?,
+            OutputFormat::Html => serialize_html(endpoints)?,
+        };
         let mut file = File::create(path)?;
         file.write_all(output.as_bytes())?;
     } else {
-        println!("{}", output);
+        display_to_terminal(endpoints);
     }
 
     Ok(())
+}
+
+/// Display endpoints to terminal with colors and formatting
+fn display_to_terminal(endpoints: &[Endpoint]) {
+    println!(
+        "\n{}",
+        "🔍 Discovered Endpoints".bold().bright_white().on_blue()
+    );
+    println!("{}", "─".repeat(80).dimmed());
+
+    for ep in endpoints {
+        let method = ep.method.as_deref().unwrap_or("GET").to_uppercase();
+        let method_colored = match method.as_str() {
+            "GET" => method.green(),
+            "POST" => method.blue(),
+            "PUT" => method.yellow(),
+            "DELETE" => method.red(),
+            _ => method.normal(),
+        };
+
+        let type_badge = match ep.endpoint_type {
+            crate::types::EndpointType::Rest => " REST ".black().on_bright_blue(),
+            crate::types::EndpointType::GraphQL => " GQL  ".black().on_bright_magenta(),
+            crate::types::EndpointType::WebSocket => "  WS  ".black().on_bright_green(),
+            _ => " UNK  ".black().on_white(),
+        };
+
+        println!(
+            "{} {:<7} {} {}",
+            type_badge,
+            method_colored.bold(),
+            ep.url.bright_white(),
+            format!("({})", ep.source.as_deref().unwrap_or("-")).dimmed()
+        );
+    }
+
+    println!("{}", "─".repeat(80).dimmed());
+    println!(
+        "{} {}",
+        "Total endpoints:".bold(),
+        endpoints.len().to_string().bright_green()
+    );
 }
 
 /// Serialize to JSON
@@ -126,12 +168,13 @@ fn serialize_html(endpoints: &[Endpoint]) -> Result<String> {
             ep.method.as_deref().unwrap_or("-"),
             ep.source.as_deref().unwrap_or("-"),
             ep.line
-                .map(|l| l.to_string())
+                .map(|l: usize| l.to_string())
                 .unwrap_or_else(|| "-".to_string())
         ));
     }
 
-    html.push_str(r#"            </tbody>
+    html.push_str(
+        r#"            </tbody>
         </table>
     </div>
 
@@ -185,7 +228,8 @@ fn serialize_html(endpoints: &[Endpoint]) -> Result<String> {
         }
     </script>
 </body>
-</html>"#);
+</html>"#,
+    );
 
     Ok(html)
 }

@@ -8,14 +8,17 @@ pub struct InteractiveUi {
 
 impl InteractiveUi {
     /// Create a new interactive UI
+    /// Create a new interactive UI
     pub fn new(total_steps: u64) -> Self {
         let multi = MultiProgress::new();
 
         let main_pb = multi.add(ProgressBar::new(total_steps));
         main_pb.set_style(ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")
+            .template("{spinner:.magenta} {prefix:.bold.cyan} [{elapsed_precise}] [{bar:40.gradient(blue,cyan)}] {pos}/{len} {msg}")
             .expect("Failed to set progress style")
-            .progress_chars("#>-"));
+            .progress_chars("█▓▒░"));
+
+        main_pb.set_prefix("Scanning");
 
         Self { multi, main_pb }
     }
@@ -25,9 +28,9 @@ impl InteractiveUi {
         let pb = self.multi.add(ProgressBar::new(len));
         pb.set_style(
             ProgressStyle::default_bar()
-                .template("  {spinner:.yellow} {msg} [{bar:20.yellow/orange}] {pos}/{len}")
+                .template("  {spinner:.yellow} {msg:.dim} [{bar:20.yellow/blue}] {pos}/{len}")
                 .expect("Failed to set progress style")
-                .progress_chars("=>-"),
+                .progress_chars("━╾─"),
         );
         pb.set_message(message.to_string());
         pb
@@ -45,6 +48,6 @@ impl InteractiveUi {
 
     /// Finish UI
     pub fn finish(&self) {
-        self.main_pb.finish_with_message("Scan Completed");
+        self.main_pb.finish_with_message("Done! ✨");
     }
 }
