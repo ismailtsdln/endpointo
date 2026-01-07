@@ -1,0 +1,48 @@
+# Rust
+/target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.env
+
+# Output files
+*.json
+*.yaml
+*.yml
+*.xml
+*.html
+!tests/fixtures/*.json
+!tests/fixtures/*.yaml
+!tests/fixtures/*.html
+
+# Coverage
+*.profraw
+*.profdata
+coverage/
+lcov.info
+
+# Fuzz
+fuzz/corpus/
+fuzz/artifacts/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
