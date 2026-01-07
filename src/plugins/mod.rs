@@ -3,10 +3,15 @@ use pyo3::prelude::*;
 #[cfg(feature = "python-plugins")]
 use pyo3::types::PyDict;
 
-use crate::error::{Error, Result};
+#[cfg(feature = "python-plugins")]
+use crate::error::Error;
+use crate::error::Result;
 use crate::types::Endpoint;
 use std::path::Path;
-use tracing::{error, info};
+use tracing::info;
+
+#[cfg(feature = "python-plugins")]
+use tracing::error;
 
 /// Plugin manager handles loading and executing Python plugins
 pub struct PluginManager {

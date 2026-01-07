@@ -1,9 +1,10 @@
 use anyhow::Result;
-use clap::Parser;
-use endpointo::cli::{Cli, Commands};
+use clap::Parser as _;
+use endpointo::cli::{Cli, Commands, InteractiveUi};
 use endpointo::config::ScanConfig;
-use endpointo::output::OutputFormat;
+use endpointo::output::{write_results, OutputFormat};
 use endpointo::scanner::Scanner;
+use std::path::PathBuf;
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -27,24 +28,31 @@ async fn main() -> Result<()> {
             timeout,
             threads,
             filter,
-            plugin: _,
+            plugin,
         } => {
-            let config = ScanConfig {
-                rate_limit: rate_limit.unwrap_or(10),
-                timeout_seconds: timeout.unwrap_or(30),
-                max_concurrent: threads.unwrap_or(10),
-                follow_redirects: true,
-                respect_robots_txt: true,
-                user_agent: Some("Endpointo/0.1.0".to_string()),
-                filter_pattern: filter,
-            };
+            let mut config = ScanConfig::new(url.clone())
+                .with_rate_limit(rate_limit)
+                .with_timeout(timeout)
+                .with_max_concurrent(threads);
 
-            let scanner = Scanner::new(config);
+            if let Some(f) = filter {
+                config = config.with_filter(f);
+            }
+
+            if let Some(p) = plugin {
+                config = config.with_plugin(PathBuf::from(p));
+            }
+
+            let mut scanner = Scanner::new(config);
+
+            // Use interactive UI if verbose logging is not enabled and stdout is a terminal
+            if std::env::var("RUST_LOG").is_err() {
+                scanner = scanner.with_ui(InteractiveUi::new(5));
+            }
+
             let results = scanner.scan_url(&url).await?;
-
-            // Write output
             let output_format = format.unwrap_or(OutputFormat::Json);
-            endpointo::output::write_results(&results, output.as_deref(), output_format)?;
+            write_results(&results, output.as_deref(), output_format)?;
 
             println!("✅ Scan complete! Found {} endpoints", results.len());
             if let Some(output_path) = output {
@@ -57,9 +65,16 @@ async fn main() -> Result<()> {
             output,
             format,
             filter,
-            plugin: _,
+            plugin,
         } => {
-            let config = ScanConfig::default();
+            let mut config = ScanConfig::default();
+            if let Some(f) = filter {
+                config = config.with_filter(f);
+            }
+            if let Some(p) = plugin {
+                config = config.with_plugin(PathBuf::from(p));
+            }
+
             let scanner = Scanner::new(config);
 
             let mut all_results = Vec::new();
@@ -68,21 +83,9 @@ async fn main() -> Result<()> {
                 all_results.extend(results);
             }
 
-            // Apply filter if specified
-            if let Some(filter_pattern) = filter {
-                all_results.retain(|endpoint| {
-                    endpoint.url.contains(&filter_pattern)
-                        || endpoint
-                            .method
-                            .as_deref()
-                            .unwrap_or("")
-                            .contains(&filter_pattern)
-                });
-            }
-
             // Write output
             let output_format = format.unwrap_or(OutputFormat::Json);
-            endpointo::output::write_results(&all_results, output.as_deref(), output_format)?;
+            write_results(&all_results, output.as_deref(), output_format)?;
 
             println!("✅ Parse complete! Found {} endpoints", all_results.len());
             if let Some(output_path) = output {

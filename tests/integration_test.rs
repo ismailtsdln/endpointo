@@ -98,11 +98,11 @@ fn test_endpoint_builder() {
 fn test_config_builder() {
     use endpointo::config::ScanConfig;
 
-    let config = ScanConfig::new()
-        .rate_limit(20)
-        .timeout(60)
-        .max_concurrent(5)
-        .user_agent("CustomAgent/1.0");
+    let config = ScanConfig::new("https://example.com".to_string())
+        .with_rate_limit(Some(20))
+        .with_timeout(Some(60))
+        .with_max_concurrent(Some(5))
+        .with_user_agent("CustomAgent/1.0");
 
     assert_eq!(config.rate_limit, 20);
     assert_eq!(config.timeout_seconds, 60);

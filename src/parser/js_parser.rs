@@ -1,6 +1,5 @@
 use crate::parser::patterns::PatternMatcher;
 use crate::types::{Endpoint, EndpointType};
-use std::collections::HashMap;
 
 /// JavaScript parser stub (to be replaced with tree-sitter or similar)
 pub struct JsParser {

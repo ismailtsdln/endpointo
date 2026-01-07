@@ -131,6 +131,17 @@ impl PatternMatcher {
 
         true
     }
+
+    /// Detect endpoint type based on URL and context
+    pub fn detect_endpoint_type(&self, url: &str, content: &str) -> EndpointType {
+        if url.contains("graphql") || content.contains("gql`") || content.contains("query {") {
+            EndpointType::GraphQL
+        } else if url.starts_with("ws") || url.starts_with("wss") {
+            EndpointType::WebSocket
+        } else {
+            EndpointType::Rest
+        }
+    }
 }
 
 impl Default for PatternMatcher {

@@ -31,7 +31,7 @@ impl SourceMapExtractor {
         match SourceMap::from_reader(content.as_bytes()) {
             Ok(sm) => {
                 for (i, source) in sm.sources().enumerate() {
-                    if let Some(source_content) = sm.get_source_contents(i as u32) {
+                    if let Some(_source_content) = sm.get_source_contents(i as u32) {
                         debug!("Analyzing source map file: {}", source);
                         // Mark the sources
                         let ep = Endpoint::new(source.to_string(), EndpointType::Unknown)
