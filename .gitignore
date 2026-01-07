@@ -31,6 +31,8 @@ env/
 !tests/fixtures/*.json
 !tests/fixtures/*.yaml
 !tests/fixtures/*.html
+!.github/workflows/*.yml
+!.github/workflows/*.yaml
 
 # Coverage
 *.profraw

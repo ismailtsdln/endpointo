@@ -1,0 +1,21 @@
+[package]
+name = "endpointo-fuzz"
+version = "0.0.0"
+authors = ["Automatically generated"]
+publish = false
+edition = "2021"
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.endpointo]
+path = ".."
+
+# Prevent this package from being a member of the workspace
+[workspace]
+
+[[bin]]
+name = "parser_fuzz"
+path = "fuzz_targets/parser_fuzz.rs"
+test = false
+doc = false
